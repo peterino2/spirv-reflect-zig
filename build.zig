@@ -13,7 +13,11 @@ pub fn compileAndReflectGlsl(
         source_file: std.Build.FileSource,
         output_name: []const u8,
     },
-) std.Build.FileSource {
+) struct {
+    spv_out: std.Build.FileSource,
+    json_out: std.Build.FileSource,
+    step: *std.Build.Step,
+} {
     const finalSpv = b.fmt("{s}.spv", .{options.output_name});
     const finalJson = b.fmt("{s}.json", .{options.output_name});
 
@@ -31,13 +35,23 @@ pub fn compileAndReflectGlsl(
     b.getInstallStep().dependOn(&b.addInstallFile(spvOutputFile, finalSpv).step);
     b.getInstallStep().dependOn(&b.addInstallFile(outputJson, finalJson).step);
 
-    return outputJson;
+    var topStep = b.allocator.create(std.Build.Step) catch unreachable;
+
+    topStep.* = std.Build.Step.init(.{ .id = .custom, .name = options.output_name, .owner = b });
+    topStep.dependOn(&jsonReflectStep.step);
+
+    return .{
+        .json_out = outputJson,
+        .spv_out = spvOutputFile,
+        .step = topStep,
+    };
 }
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    var glslResults = compileAndReflectGlsl(b, .{ .source_file = .{ .path = "test_shaders/test_vk.vert" }, .output_name = "test_vk.vert" });
     const exe = b.addExecutable(.{
         .name = "spirv-reflect-zig",
         .root_source_file = .{ .path = "main.zig" },
@@ -57,6 +71,7 @@ pub fn build(b: *std.Build) void {
 
     const run_step = b.step("run", "runs the test executable");
     run_step.dependOn(&run_cmd.step);
+    run_step.dependOn(glslResults.step);
 
     const unit_tests = b.addTest(.{
         .root_source_file = .{ .path = "main.zig" },
@@ -68,6 +83,4 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
-
-    _ = compileAndReflectGlsl(b, .{ .source_file = .{ .path = "test_shaders/test_vk.vert" }, .output_name = "test_vk.vert" });
 }

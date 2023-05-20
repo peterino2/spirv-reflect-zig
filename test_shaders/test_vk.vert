@@ -20,8 +20,14 @@ struct ImageRenderData {
     float zLevel;
 };
 
+struct ImageRenderData2{
+    ImageRenderData Lmfao;
+    float SomeGoodShit;
+    vec2 GoodShit;
+};
+
 layout(std140, set = 0, binding = 0) readonly buffer ImageBufferObjects {
-    ImageRenderData objects[];
+    ImageRenderData2 objects[];
 } objectBuffer;
 
 layout (push_constant) uniform constants 
@@ -31,12 +37,12 @@ layout (push_constant) uniform constants
 
 void main()
 {
-	vec2 imagePosition = objectBuffer.objects[gl_BaseInstance].imagePosition;
-    vec2 imageSize = objectBuffer.objects[gl_BaseInstance].imageSize;
-    vec2 anchor = objectBuffer.objects[gl_BaseInstance].anchorPoint;
-    vec2 scale = objectBuffer.objects[gl_BaseInstance].scale;
-    float alpha = objectBuffer.objects[gl_BaseInstance].alpha;
-	vec4 baseColor = objectBuffer.objects[gl_BaseInstance].baseColor;
+	vec2 imagePosition = objectBuffer.objects[gl_BaseInstance].Lmfao.imagePosition;
+    vec2 imageSize = objectBuffer.objects[gl_BaseInstance].Lmfao.imageSize;
+    vec2 anchor = objectBuffer.objects[gl_BaseInstance].Lmfao.anchorPoint;
+    vec2 scale = objectBuffer.objects[gl_BaseInstance].Lmfao.scale;
+    float alpha = objectBuffer.objects[gl_BaseInstance].Lmfao.alpha;
+	vec4 baseColor = objectBuffer.objects[gl_BaseInstance].Lmfao.baseColor;
 
 	vec2 finalSize = (imageSize / PushConstants.extent);
 
