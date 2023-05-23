@@ -1,3 +1,5 @@
+// Copyright (c) peterino2@github.com
+
 const std = @import("std");
 
 pub const vec2 = extern struct {
@@ -9,6 +11,7 @@ pub const vec3 = extern struct {
     x: f32,
     y: f32,
     z: f32,
+    pad: f32,
 };
 
 pub const vec4 = extern struct {
