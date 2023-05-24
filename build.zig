@@ -16,6 +16,7 @@ pub const SpirvGenerator = struct {
     b: *std.Build,
     step: *std.Build.Step,
     repoPath: []const u8,
+    glslTypes: *std.build.Module,
 
     pub fn init(
         b: *std.Build,
@@ -42,10 +43,12 @@ pub const SpirvGenerator = struct {
             .exe = exe,
             .step = b.step("spirv", "compiles all glsl files into spirv binaries and generates .zig types"),
             .repoPath = opts.repoPath,
+            .glslTypes = b.addModule("glslTypes", .{
+                .source_file = .{ .path = glslTypesPath },
+            }),
         };
 
         self.step.dependOn(&exe.step);
-        self.step.dependOn(&b.addInstallFile(.{ .path = glslTypesPath }, "reflectedTypes/glslTypes.zig").step);
 
         if (opts.addInstallStep) {
             b.installArtifact(exe);
@@ -135,8 +138,12 @@ pub const SpirvGenerator = struct {
             .path = b.fmt("zig-out/{s}", .{outputFile}),
         };
 
+        var dependencies = self.b.allocator.alloc(std.build.ModuleDependency, 1) catch unreachable;
+        dependencies[0] = .{ .name = "glslTypes", .module = self.glslTypes };
+
         var module = b.addModule(options.shaderName, .{
             .source_file = .{ .generated = generatedFileRef },
+            .dependencies = dependencies,
         });
 
         return module;
