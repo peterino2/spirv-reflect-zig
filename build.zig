@@ -10,7 +10,7 @@ const std = @import("std");
 //
 // 3. compile the reflect program, and invoke it on the json file.
 
-const SpirvGenerator = struct {
+pub const SpirvGenerator = struct {
     steps: std.ArrayList(*std.Build.Step),
     exe: *std.Build.Step.Compile,
     b: *std.Build,
