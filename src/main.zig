@@ -8,6 +8,7 @@ const ProgramOptions = struct {
     verbose: bool = false,
     sourceFile: ?[]u8 = null,
     errorMsg: ?[]u8 = null,
+    embedFile: ?[]u8 = null,
 
     pub fn deinit(self: @This(), allocator: std.mem.Allocator) void {
         allocator.free(self.outputFile);
@@ -17,6 +18,10 @@ const ProgramOptions = struct {
 
         if (self.errorMsg) |msg| {
             allocator.free(msg);
+        }
+
+        if (self.embedFile) |embedFile| {
+            allocator.free(embedFile);
         }
     }
 };
@@ -46,6 +51,7 @@ fn parseArgs(allocator: std.mem.Allocator) !ProgramOptions {
         zero,
         default,
         output,
+        embed,
     };
 
     var state: ParseState = .zero;
@@ -63,6 +69,8 @@ fn parseArgs(allocator: std.mem.Allocator) !ProgramOptions {
             },
             .default => {
                 if (arg[0] == '-') {
+                    if (matchArgOpt(arg, "embed", "e"))
+                        state = .embed;
                     if (matchArgOpt(arg, "output", "o"))
                         state = .output;
                     if (matchArgOpt(arg, "verbose", "v"))
@@ -80,6 +88,12 @@ fn parseArgs(allocator: std.mem.Allocator) !ProgramOptions {
             .output => {
                 allocator.free(opts.outputFile);
                 opts.outputFile = try dupe(allocator, arg);
+                state = .default;
+            },
+            .embed => {
+                if (opts.embedFile != null)
+                    allocator.free(opts.embedFile.?);
+                opts.embedFile = try dupe(allocator, arg);
                 state = .default;
             },
         }
@@ -119,6 +133,7 @@ pub fn main() !void {
         opts.sourceFile.?,
         .{
             .verbose = opts.verbose,
+            .embedFile = opts.embedFile,
         },
     );
     defer reflectedJson.deinit();

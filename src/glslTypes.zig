@@ -21,6 +21,8 @@ pub const vec4 = extern struct {
     w: f32,
 };
 
+pub const mat4 = [4][4]f32;
+
 pub const float = f32;
 
 pub fn CheckFieldDetails(

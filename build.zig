@@ -70,8 +70,8 @@ pub const SpirvGenerator = struct {
         json_out: std.Build.FileSource,
         step: *std.Build.Step,
     } {
-        const finalSpv = b.fmt("{s}.spv", .{options.output_name});
-        const finalJson = b.fmt("{s}.json", .{options.output_name});
+        const finalSpv = b.fmt("reflectedTypes/{s}.spv", .{options.output_name});
+        const finalJson = b.fmt("reflectedTypes/{s}.json", .{options.output_name});
 
         //const compileStep = b.addSystemCommand(&[_][]const u8{ "glslc", "--target-env=vulkan1.2" });
         const compileStep = b.addSystemCommand(options.shaderCompilerCommand);
@@ -110,6 +110,7 @@ pub const SpirvGenerator = struct {
             shaderName: []const u8,
             shaderCompilerCommand: []const []const u8,
             shaderCompilerOutputFlag: []const u8,
+            embedFile: bool = false,
         },
     ) *std.Build.Module {
         var results = compileAndReflectGlsl(self.b, .{
@@ -126,6 +127,12 @@ pub const SpirvGenerator = struct {
         run_cmd.addFileSourceArg(results.json_out);
         run_cmd.addArg("-o");
         const outputZigFile = run_cmd.addOutputFileArg(outputFile);
+
+        if (options.embedFile) {
+            var spvFile = b.fmt("{s}.spv", .{options.shaderName});
+            run_cmd.addArg("-e");
+            run_cmd.addArg(spvFile);
+        }
 
         run_cmd.step.dependOn(&self.exe.step);
         self.step.dependOn(&run_cmd.step);
@@ -156,6 +163,7 @@ pub const SpirvGenerator = struct {
         opts: struct {
             shaderCompilerCommand: []const []const u8 = &.{ "glslc", "--target-env=vulkan1.2" },
             shaderCompilerOutputFlag: []const u8 = "-o",
+            embedFile: bool = false,
         },
     ) *std.Build.Module {
         return self.addShader(.{
@@ -163,6 +171,7 @@ pub const SpirvGenerator = struct {
             .shaderName = shaderName,
             .shaderCompilerCommand = opts.shaderCompilerCommand,
             .shaderCompilerOutputFlag = opts.shaderCompilerOutputFlag,
+            .embedFile = opts.embedFile,
         });
     }
 };
@@ -186,7 +195,7 @@ pub fn build(b: *std.Build) void {
 
     // This returns a module which contains the reflected.zig file which correct
     // data layout
-    var test_vk = spirvCompile.shader("shaders/test_vk.vert", "test_vk", .{});
+    var test_vk = spirvCompile.shader("shaders/test_vk.vert", "test_vk", .{ .embedFile = true });
     // ===============================================================================
 
     // Create your executables as you normally would
