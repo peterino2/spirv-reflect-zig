@@ -74,6 +74,9 @@ pub const SpirvGenerator = struct {
         const finalJson = b.fmt("reflectedTypes/{s}.json", .{options.output_name});
 
         //const compileStep = b.addSystemCommand(&[_][]const u8{ "glslc", "--target-env=vulkan1.2" });
+        for (options.shaderCompilerCommand) |cmd| {
+            std.debug.print("\n{s}\n", .{cmd});
+        }
         const compileStep = b.addSystemCommand(options.shaderCompilerCommand);
         compileStep.addFileSourceArg(options.source_file);
         compileStep.addArg(options.shaderCompilerOutputFlag);
