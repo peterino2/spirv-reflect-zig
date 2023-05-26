@@ -5,13 +5,28 @@ const std = @import("std");
 pub const vec2 = extern struct {
     x: f32,
     y: f32,
+
+    pub fn from(o: anytype) @This() {
+        return .{
+            .x = o.x,
+            .y = o.y,
+        };
+    }
 };
 
 pub const vec3 = extern struct {
     x: f32,
     y: f32,
     z: f32,
-    pad: f32,
+
+    pub fn from(o: anytype) @This() {
+        return .{
+            .x = o.x,
+            .y = o.y,
+            .z = o.z,
+            .pad = 0,
+        };
+    }
 };
 
 pub const vec4 = extern struct {
@@ -19,6 +34,15 @@ pub const vec4 = extern struct {
     y: f32,
     z: f32,
     w: f32,
+
+    pub fn from(o: anytype) @This() {
+        return .{
+            .x = o.x,
+            .y = o.y,
+            .z = o.z,
+            .w = o.w,
+        };
+    }
 };
 
 pub const mat4 = [4][4]f32;
