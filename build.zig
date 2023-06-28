@@ -16,6 +16,7 @@ pub const SpirvGenerator = struct {
     b: *std.Build,
     step: *std.Build.Step,
     repoPath: []const u8,
+    installed: std.StringHashMap(bool),
     glslTypes: *std.build.Module,
 
     pub fn init(
@@ -46,6 +47,7 @@ pub const SpirvGenerator = struct {
             .glslTypes = b.addModule("glslTypes", .{
                 .source_file = .{ .path = glslTypesPath },
             }),
+            .installed = std.StringHashMap(bool).init(b.allocator),
         };
 
         self.step.dependOn(&exe.step);
@@ -58,6 +60,7 @@ pub const SpirvGenerator = struct {
     }
 
     fn compileAndReflectGlsl(
+        self: *@This(),
         b: *std.Build,
         options: struct {
             source_file: std.Build.FileSource,
@@ -70,8 +73,8 @@ pub const SpirvGenerator = struct {
         json_out: std.Build.FileSource,
         step: *std.Build.Step,
     } {
-        const finalSpv = b.fmt("reflectedTypes/{s}.spv", .{options.output_name});
-        const finalJson = b.fmt("reflectedTypes/{s}.json", .{options.output_name});
+        const finalSpv = b.fmt("shaders/{s}.spv", .{options.output_name});
+        const finalJson = b.fmt("shaders/{s}.json", .{options.output_name});
 
         //const compileStep = b.addSystemCommand(&[_][]const u8{ "glslc", "--target-env=vulkan1.2" });
         const compileStep = b.addSystemCommand(options.shaderCompilerCommand);
@@ -87,10 +90,17 @@ pub const SpirvGenerator = struct {
 
         var reflect = b.allocator.create(std.Build.Step) catch unreachable;
         reflect.* = std.Build.Step.init(.{ .id = .custom, .name = options.output_name, .owner = b, .makeFn = make });
-        reflect.dependOn(&b.addInstallFile(spvOutputFile, finalSpv).step);
-        reflect.dependOn(&b.addInstallFile(outputJson, finalJson).step);
+        // reflect.dependOn(&b.addInstallFile(spvOutputFile, finalSpv).step);
+        // reflect.dependOn(&b.addInstallFile(outputJson, finalJson).step);
 
         reflect.dependOn(&jsonReflectStep.step);
+
+        if (self.installed.get(finalSpv)) |exists| {
+            _ = exists;
+        } else {
+            b.getInstallStep().dependOn(&b.addInstallFile(spvOutputFile, finalSpv).step);
+            self.installed.put(finalSpv, true) catch unreachable;
+        }
 
         return .{
             .json_out = outputJson,
@@ -113,7 +123,7 @@ pub const SpirvGenerator = struct {
             embedFile: bool = false,
         },
     ) *std.Build.Module {
-        var results = compileAndReflectGlsl(self.b, .{
+        var results = self.compileAndReflectGlsl(self.b, .{
             .source_file = options.sourceFile,
             .output_name = options.shaderName,
             .shaderCompilerCommand = options.shaderCompilerCommand,
@@ -149,7 +159,7 @@ pub const SpirvGenerator = struct {
         dependencies[0] = .{ .name = "glslTypes", .module = self.glslTypes };
 
         var module = b.addModule(options.shaderName, .{
-            .source_file = .{ .generated = generatedFileRef },
+            .source_file = outputZigFile,
             .dependencies = dependencies,
         });
 
