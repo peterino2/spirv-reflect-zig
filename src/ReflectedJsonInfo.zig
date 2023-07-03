@@ -60,11 +60,11 @@ pub fn reflect(allocator: std.mem.Allocator, fileName: []const u8, opts: Options
     const fileContents = try file.readToEndAlloc(allocator, 10000000);
     defer allocator.free(fileContents);
 
-    var parser = std.json.Parser.init(allocator, .alloc_always);
-    defer parser.deinit();
-    var tree = try parser.parse(fileContents);
-    var root = tree.root.object;
+    var tree = try std.json.parseFromSlice(std.json.Value, allocator, fileContents, .{});
     defer tree.deinit();
+    //var tree = try parser.parseFromSlice(fileContents);
+    var root = tree.value.object;
+    //defer tree.deinit();
 
     if (root.get("types")) |maybe| {
         const typesRef = maybe.object;
@@ -145,7 +145,7 @@ fn generateReflectedTypeInfo(self: @This(), typeObject: std.json.ObjectMap) !Ref
         };
 
         if (member.object.get("offset")) |offset| {
-            reflectedField.offset = @intCast(usize, offset.integer);
+            reflectedField.offset = @as(usize, @intCast(offset.integer));
         } else {
             return error.DummyObject;
         }
@@ -257,7 +257,7 @@ pub fn render(self: *@This(), allocator: std.mem.Allocator) ![]u8 {
     try writer.writeAll(validateChunk.items);
 
     try ostring.append(0);
-    var ast = try std.zig.Ast.parse(allocator, @ptrCast([:0]const u8, ostring.items[0 .. ostring.items.len - 1]), .zig);
+    var ast = try std.zig.Ast.parse(allocator, @as([:0]const u8, @ptrCast(ostring.items[0 .. ostring.items.len - 1])), .zig);
     defer ast.deinit(allocator);
     var out = try ast.render(allocator);
 
