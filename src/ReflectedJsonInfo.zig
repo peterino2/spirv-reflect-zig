@@ -151,6 +151,13 @@ fn generateReflectedTypeInfo(self: @This(), typeObject: std.json.ObjectMap) !Ref
         }
 
         // determine size
+        //
+        if (std.mem.eql(u8, reflectedField.typeName, "int"))
+            reflectedField.size = 4;
+
+        if (std.mem.eql(u8, reflectedField.typeName, "uint"))
+            reflectedField.size = 4;
+
         if (std.mem.eql(u8, reflectedField.typeName, "vec2"))
             reflectedField.size = 8;
 
@@ -198,6 +205,7 @@ pub fn render(self: *@This(), allocator: std.mem.Allocator) ![]u8 {
     try writer.writeAll("const vec4 = gl.vec4;\n");
     try writer.writeAll("const mat4 = gl.mat4;\n");
     try writer.writeAll("const float = gl.float;\n");
+    try writer.writeAll("const uint = gl.uint;\n");
 
     for (self.reflectedTypes.values()) |reflected| {
         if (std.mem.eql(u8, reflected.name, "gl_PerVertex")) {

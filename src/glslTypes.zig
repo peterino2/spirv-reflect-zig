@@ -14,6 +14,9 @@ pub const vec2 = extern struct {
     }
 };
 
+pub const int = i32;
+pub const uint = u32;
+
 pub const vec3 = extern struct {
     x: f32,
     y: f32,
