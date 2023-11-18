@@ -72,6 +72,8 @@ pub const SpirvGenerator = struct {
         spv_out: std.Build.FileSource,
         json_out: std.Build.FileSource,
         step: *std.Build.Step,
+        glslcCompileStep: *std.Build.Step,
+        installGlslc: *std.Build.Step,
     } {
         const finalSpv = b.fmt("shaders/{s}.spv", .{options.output_name});
         const finalJson = b.fmt("shaders/{s}.json", .{options.output_name});
@@ -80,6 +82,7 @@ pub const SpirvGenerator = struct {
         const compileStep = b.addSystemCommand(options.shaderCompilerCommand);
         compileStep.addFileSourceArg(options.source_file);
         compileStep.addArg(options.shaderCompilerOutputFlag);
+
         const spvOutputFile = compileStep.addOutputFileArg(finalSpv);
 
         const jsonReflectStep = b.addSystemCommand(&[_][]const u8{"spirv-cross"});
@@ -106,6 +109,8 @@ pub const SpirvGenerator = struct {
             .json_out = outputJson,
             .spv_out = spvOutputFile,
             .step = reflect,
+            .glslcCompileStep = &compileStep.step,
+            .installGlslc = &b.addInstallFile(spvOutputFile, finalSpv).step,
         };
     }
 
@@ -116,13 +121,14 @@ pub const SpirvGenerator = struct {
     pub fn addShader(
         self: *@This(),
         options: struct {
+            exe: *std.build.CompileStep,
             sourceFile: std.Build.FileSource,
             shaderName: []const u8,
             shaderCompilerCommand: []const []const u8,
             shaderCompilerOutputFlag: []const u8,
             embedFile: bool = false,
         },
-    ) *std.Build.Module {
+    ) void {
         var results = self.compileAndReflectGlsl(self.b, .{
             .source_file = options.sourceFile,
             .output_name = options.shaderName,
@@ -163,11 +169,15 @@ pub const SpirvGenerator = struct {
             .dependencies = dependencies,
         });
 
-        return module;
+        options.exe.addModule(options.shaderName, module);
+        options.exe.step.dependOn(&run_cmd.step);
+        options.exe.step.dependOn(results.step);
+        options.exe.step.dependOn(results.installGlslc);
     }
 
     pub fn shader(
         self: *@This(),
+        exe: *std.build.CompileStep,
         source: []const u8,
         shaderName: []const u8,
         opts: struct {
@@ -175,8 +185,9 @@ pub const SpirvGenerator = struct {
             shaderCompilerOutputFlag: []const u8 = "-o",
             embedFile: bool = false,
         },
-    ) *std.Build.Module {
-        return self.addShader(.{
+    ) void {
+        self.addShader(.{
+            .exe = exe,
             .sourceFile = .{ .path = source },
             .shaderName = shaderName,
             .shaderCompilerCommand = opts.shaderCompilerCommand,
